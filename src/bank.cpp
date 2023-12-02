@@ -237,7 +237,9 @@ int Bank::check_balance(int workerID, int ledgerID, int accountID)
 {
   accounts[accountID].lock_read();
   int balance = accounts[accountID].balance;
+  pthread_mutex_lock(&bank_lock);
   cout << "Account " << accountID << " - Balance: " << balance << endl;
+  pthread_mutex_unlock(&bank_lock);
   string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": check balance of account " + to_string(accountID);
   char message[str.length() + 1];
   message[str.length()] = '\0';
