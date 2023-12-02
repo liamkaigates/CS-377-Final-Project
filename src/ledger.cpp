@@ -20,8 +20,6 @@ Bank *bank;
  */
 void InitBank(int num_workers, char *filename)
 {
-	time_t start, end;
-	time(&start);
 	bank = new Bank(10);
 	bank->print_account();
 	load_ledger(filename);
@@ -50,10 +48,6 @@ void InitBank(int num_workers, char *filename)
 			delete bank;
 		}
 	}
-	time(&end);
-	int time_taken = int(end - start);
-	cout << "Time taken by program is: " << fixed
-		 << time_taken << " sec " << endl;
 }
 
 /**

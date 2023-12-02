@@ -35,6 +35,7 @@ struct Account
   void unlock_read()
   {
     pthread_mutex_lock(&read_lock);
+    
     read_count--;
     if (read_count == 0)
     {
