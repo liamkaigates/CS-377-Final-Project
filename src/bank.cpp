@@ -71,6 +71,12 @@ Bank::Bank(int N)
     accounts[i].write_lock = PTHREAD_MUTEX_INITIALIZER;
     accounts[i].read_lock = PTHREAD_MUTEX_INITIALIZER;
   }
+  accountLogs = (AccountLog *)malloc(N * sizeof(AccountLog));
+  for (int i = 0; i < N; i++)
+  {
+    accountLogs[i].write_lock = PTHREAD_MUTEX_INITIALIZER;
+    accountLogs[i].read_lock = PTHREAD_MUTEX_INITIALIZER;
+  }
 }
 
 /**
@@ -120,7 +126,9 @@ int Bank::deposit(int workerID, int ledgerID, int accountID, int amount, fstream
       message[i] = str[i];
     }
     recordSucc(message);
+    accountLogs[accountID].lock_write();
     *file << log;
+    accountLogs[accountID].unlock_write();
     accounts[accountID].unlock_write();
     return 0;
   }
@@ -156,7 +164,9 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount, fstrea
     }
     recordSucc(message);
     string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
+    accountLogs[accountID].lock_write();
     *file << log;
+    accountLogs[accountID].unlock_write();
     accounts[accountID].unlock_write();
   }
   else
@@ -170,7 +180,9 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount, fstrea
     }
     recordFail(message);
     string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
+    accountLogs[accountID].lock_write();
     *file << log;
+    accountLogs[accountID].unlock_write();
     accounts[accountID].unlock_write();
     return -1;
   }
@@ -212,8 +224,12 @@ int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
     recordSucc(message);
     string log1 = "Transaction Type: Transfer, Amount: " + to_string(amount) + ", Receiver: " + to_string(destID) + ", Status: Success\n";
     string log2 = "Transaction Type: Transfer, Amount: " + to_string(amount) + ", Sender: " + to_string(srcID) + ", Status: Success\n";
+    accountLogs[srcID].lock_write();
     *file << log1;
+    accountLogs[srcID].unlock_write();
+    accountLogs[destID].lock_write();
     *file2 << log2;
+    accountLogs[destID].unlock_write();
     accounts[srcID].unlock_write();
   }
   else
@@ -228,8 +244,12 @@ int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
     recordFail(message);
     string log1 = "Transaction Type: Transfer, Amount: 0, Receiver: " + to_string(destID) + ", Status: Failed\n";
     string log2 = "Transaction Type: Transfer, Amount: 0, Sender: " + to_string(srcID) + ", Status: Failed\n";
+    accountLogs[srcID].lock_write();
     *file << log1;
+    accountLogs[srcID].unlock_write();
+    accountLogs[destID].lock_write();
     *file2 << log2;
+    accountLogs[destID].unlock_write();
     accounts[srcID].unlock_write();
     return -1;
   }
@@ -264,7 +284,9 @@ int Bank::check_balance(int workerID, int ledgerID, int accountID, fstream *file
   }
   recordSucc(message);
   string log = "Transaction Type: Check Balance, Amount: 0, Status: Success\n";
+  accountLogs[accountID].lock_write();
   *file << log;
+  accountLogs[accountID].unlock_write();
   accounts[accountID].unlock_read();
   return 0;
 }
@@ -286,11 +308,14 @@ int Bank::printAccountLog(int workerID, int ledgerID, int accountID, fstream *fi
   string line;
   if ((*file).is_open())
   {
-    (*file).seekg(0, ios::beg);
+    accountLogs[accountID].lock_read();
     while (getline(*file, line))
     {
+      accountLogs[accountID].unlock_read();
       cout << line << '\n';
+      accountLogs[accountID].lock_read();
     }
+    accountLogs[accountID].unlock_read();
   }
   else
   {
@@ -298,7 +323,7 @@ int Bank::printAccountLog(int workerID, int ledgerID, int accountID, fstream *fi
     recordFail("Error opening the output file!");
     return -1; // Indicate failure
   }
-  string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": print account log of account" + to_string(accountID);
+  string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": print account log of account " + to_string(accountID);
   char message[str.length() + 1];
   message[str.length()] = '\0';
   for (int i = 0; i < str.length(); i++)

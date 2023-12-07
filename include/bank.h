@@ -51,9 +51,42 @@ struct Account
   {
     pthread_mutex_unlock(&write_lock);
   }
-}
+};
 
-;
+struct AccountLog
+{
+  pthread_mutex_t read_lock, write_lock;
+  int read_count = 0;
+  void lock_read()
+  {
+    pthread_mutex_lock(&read_lock);
+    read_count++;
+    if (read_count == 1)
+    {
+      pthread_mutex_lock(&write_lock);
+    }
+    pthread_mutex_unlock(&read_lock);
+  }
+  void unlock_read()
+  {
+    pthread_mutex_lock(&read_lock);
+
+    read_count--;
+    if (read_count == 0)
+    {
+      pthread_mutex_unlock(&write_lock);
+    }
+    pthread_mutex_unlock(&read_lock);
+  }
+  void lock_write()
+  {
+    pthread_mutex_lock(&write_lock);
+  }
+  void unlock_write()
+  {
+    pthread_mutex_unlock(&write_lock);
+  }
+};
 
 class Bank
 {
@@ -78,6 +111,7 @@ public:
 
   pthread_mutex_t bank_lock;
   struct Account *accounts;
+  struct AccountLog *accountLogs;
 };
 
 #endif
