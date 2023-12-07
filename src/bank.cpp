@@ -125,10 +125,10 @@ int Bank::deposit(int workerID, int ledgerID, int accountID, int amount, fstream
     {
       message[i] = str[i];
     }
-    recordSucc(message);
     accountLogs[accountID].lock_write();
     *file << log;
     accountLogs[accountID].unlock_write();
+    recordSucc(message);
     accounts[accountID].unlock_write();
     return 0;
   }
@@ -162,11 +162,11 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount, fstrea
     {
       message[i] = str[i];
     }
-    recordSucc(message);
     string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
     accountLogs[accountID].lock_write();
     *file << log;
     accountLogs[accountID].unlock_write();
+    recordSucc(message);
     accounts[accountID].unlock_write();
   }
   else
@@ -178,11 +178,11 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount, fstrea
     {
       message[i] = str[i];
     }
-    recordFail(message);
     string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
     accountLogs[accountID].lock_write();
     *file << log;
     accountLogs[accountID].unlock_write();
+    recordFail(message);
     accounts[accountID].unlock_write();
     return -1;
   }
@@ -312,7 +312,9 @@ int Bank::printAccountLog(int workerID, int ledgerID, int accountID, fstream *fi
     while (getline(*file, line))
     {
       accountLogs[accountID].unlock_read();
+      pthread_mutex_lock(&bank_lock);
       cout << line << '\n';
+      pthread_mutex_unlock(&bank_lock);
       accountLogs[accountID].lock_read();
     }
     accountLogs[accountID].unlock_read();

@@ -11,11 +11,12 @@ using namespace std;
 
 const int SEED_RANDOM = 377;
 
-struct Ledger {
+struct Ledger
+{
 	int acc;
 	int other;
 	int amount;
-  	int mode;
+	int mode;
 	int ledgerID;
 };
 
