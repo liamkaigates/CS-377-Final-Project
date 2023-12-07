@@ -1,0 +1,1 @@
+Transaction Type: Check Balance, Amount: 0, Status: Success

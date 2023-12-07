@@ -1,0 +1,2 @@
+Transaction Type: Withdraw, Amount: 0, Status: Failed
+Transaction Type: Withdraw, Amount: 0, Status: Failed

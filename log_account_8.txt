@@ -1,0 +1,3 @@
+Transaction Type: Deposit, Amount: 38, Status: Success
+Transaction Type: Transfer, Amount: 0, Receiver: 9, Status: Failed
+Transaction Type: Transfer, Amount: 0, Sender: 5, Status: Failed

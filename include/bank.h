@@ -35,7 +35,7 @@ struct Account
   void unlock_read()
   {
     pthread_mutex_lock(&read_lock);
-    
+
     read_count--;
     if (read_count == 0)
     {
@@ -66,10 +66,11 @@ public:
   Bank(int N);
   ~Bank(); // destructor
 
-  int deposit(int workerID, int ledgerID, int accountID, int amount);
-  int withdraw(int workerID, int ledgerID, int accountID, int amount);
-  int transfer(int workerID, int ledgerID, int src_id, int dest_id, unsigned int amount);
-  int check_balance(int workerID, int ledgerID, int accountID);
+  int deposit(int workerID, int ledgerID, int accountID, int amount, fstream *file);
+  int withdraw(int workerID, int ledgerID, int accountID, int amount, fstream *file);
+  int transfer(int workerID, int ledgerID, int src_id, int dest_id, unsigned int amount, fstream *file, fstream *file2);
+  int check_balance(int workerID, int ledgerID, int accountID, fstream *file);
+  int printAccountLog(int workerID, int ledgerID, int accountID, fstream *file);
 
   void print_account();
   void recordSucc(char *message);

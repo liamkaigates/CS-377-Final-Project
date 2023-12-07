@@ -6,6 +6,7 @@ pthread_mutex_t ledger_lock;
 
 list<struct Ledger> ledger;
 Bank *bank;
+fstream myfile[10];
 
 /**
  * @brief creates a new bank object and sets up workers
@@ -26,6 +27,17 @@ void InitBank(int num_workers, char *filename)
 	pthread_t threads[num_workers];
 	int workerID[num_workers];
 	ledger_lock = PTHREAD_MUTEX_INITIALIZER;
+	for (int i = 0; i < 10; ++i)
+	{
+		string filename = "log_account_" + to_string(i) + ".txt";
+		myfile[i].open(filename);
+		if (!myfile[i].is_open())
+		{
+			cerr << "Error opening log file for account " << i << endl;
+			exit(1);
+		}
+	}
+
 	for (int i = 0; i < num_workers; ++i)
 	{
 		workerID[i] = i;
@@ -47,6 +59,11 @@ void InitBank(int num_workers, char *filename)
 			pthread_mutex_destroy(&ledger_lock);
 			delete bank;
 		}
+	}
+
+	for (int i = 0; i < 10; ++i)
+	{
+		myfile[i].close();
 	}
 }
 
@@ -88,19 +105,23 @@ void *worker(void *workerID)
 		pthread_mutex_unlock(&ledger_lock);
 		if (entry.mode == 0)
 		{
-			(*bank).deposit(*(int *)workerID, entry.ledgerID, entry.acc, entry.amount);
+			(*bank).deposit(*(int *)workerID, entry.ledgerID, entry.acc, entry.amount, &myfile[entry.acc]);
 		}
 		else if (entry.mode == 1)
 		{
-			(*bank).withdraw(*(int *)workerID, entry.ledgerID, entry.acc, entry.amount);
+			(*bank).withdraw(*(int *)workerID, entry.ledgerID, entry.acc, entry.amount, &myfile[entry.acc]);
 		}
 		else if (entry.mode == 2)
 		{
-			(*bank).transfer(*(int *)workerID, entry.ledgerID, entry.acc, entry.other, entry.amount);
+			(*bank).transfer(*(int *)workerID, entry.ledgerID, entry.acc, entry.other, entry.amount, &myfile[entry.acc], &myfile[entry.other]);
 		}
 		else if (entry.mode == 3)
 		{
-			(*bank).check_balance(*(int *)workerID, entry.ledgerID, entry.acc);
+			(*bank).check_balance(*(int *)workerID, entry.ledgerID, entry.acc, &myfile[entry.acc]);
+		}
+		else if (entry.mode == 4)
+		{
+			(*bank).printAccountLog(*(int *)workerID, entry.ledgerID, entry.acc, &myfile[entry.acc]);
 		}
 		pthread_mutex_lock(&ledger_lock);
 	}

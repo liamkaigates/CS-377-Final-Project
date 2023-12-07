@@ -105,13 +105,14 @@ Bank::~Bank()
  * @param amount the amount deposited
  * @return int
  */
-int Bank::deposit(int workerID, int ledgerID, int accountID, int amount)
+int Bank::deposit(int workerID, int ledgerID, int accountID, int amount, fstream *file)
 {
   if (amount >= 0)
   {
     accounts[accountID].lock_write();
     accounts[accountID].balance += amount;
     string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": deposit " + to_string(amount) + " into account " + to_string(accountID);
+    string log = "Transaction Type: Deposit, Amount: " + to_string(amount) + ", Status: Success\n";
     char message[str.length() + 1];
     message[str.length()] = '\0';
     for (int i = 0; i < str.length(); i++)
@@ -119,6 +120,7 @@ int Bank::deposit(int workerID, int ledgerID, int accountID, int amount)
       message[i] = str[i];
     }
     recordSucc(message);
+    *file << log;
     accounts[accountID].unlock_write();
     return 0;
   }
@@ -138,13 +140,14 @@ int Bank::deposit(int workerID, int ledgerID, int accountID, int amount)
  * @param amount the amount withdrawn
  * @return int 0 on success -1 on failure
  */
-int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount)
+int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount, fstream *file)
 {
   accounts[accountID].lock_write();
   if (accounts[accountID].balance > amount && amount >= 0)
   {
     accounts[accountID].balance -= amount;
     string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": withdraw " + to_string(amount) + " from account " + to_string(accountID);
+    *file << "Transaction Type: Withdraw, Amount: " + to_string(amount) + ", Status: Success" << endl;
     char message[str.length() + 1];
     message[str.length()] = '\0';
     for (int i = 0; i < str.length(); i++)
@@ -152,6 +155,8 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount)
       message[i] = str[i];
     }
     recordSucc(message);
+    string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
+    *file << log;
     accounts[accountID].unlock_write();
   }
   else
@@ -164,6 +169,8 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount)
       message[i] = str[i];
     }
     recordFail(message);
+    string log = "Transaction Type: Withdraw, Amount: 0, Status: Failed\n";
+    *file << log;
     accounts[accountID].unlock_write();
     return -1;
   }
@@ -186,7 +193,7 @@ int Bank::withdraw(int workerID, int ledgerID, int accountID, int amount)
  * @return int 0 on success -1 on error
  */
 int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
-                   unsigned int amount)
+                   unsigned int amount, fstream *file, fstream *file2)
 {
   accounts[srcID].lock_write();
   if (accounts[srcID].balance > amount && srcID != destID && amount >= 0)
@@ -203,6 +210,10 @@ int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
       message[i] = str[i];
     }
     recordSucc(message);
+    string log1 = "Transaction Type: Transfer, Amount: " + to_string(amount) + ", Receiver: " + to_string(destID) + ", Status: Success\n";
+    string log2 = "Transaction Type: Transfer, Amount: " + to_string(amount) + ", Sender: " + to_string(srcID) + ", Status: Success\n";
+    *file << log1;
+    *file2 << log2;
     accounts[srcID].unlock_write();
   }
   else
@@ -215,6 +226,10 @@ int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
       message[i] = str[i];
     }
     recordFail(message);
+    string log1 = "Transaction Type: Transfer, Amount: 0, Receiver: " + to_string(destID) + ", Status: Failed\n";
+    string log2 = "Transaction Type: Transfer, Amount: 0, Sender: " + to_string(srcID) + ", Status: Failed\n";
+    *file << log1;
+    *file2 << log2;
     accounts[srcID].unlock_write();
     return -1;
   }
@@ -233,7 +248,7 @@ int Bank::transfer(int workerID, int ledgerID, int srcID, int destID,
  * @param accountID the account ID to print balance of
  * @return int 0 on success -1 on error
  */
-int Bank::check_balance(int workerID, int ledgerID, int accountID)
+int Bank::check_balance(int workerID, int ledgerID, int accountID, fstream *file)
 {
   accounts[accountID].lock_read();
   int balance = accounts[accountID].balance;
@@ -248,6 +263,48 @@ int Bank::check_balance(int workerID, int ledgerID, int accountID)
     message[i] = str[i];
   }
   recordSucc(message);
+  string log = "Transaction Type: Check Balance, Amount: 0, Status: Success\n";
+  *file << log;
   accounts[accountID].unlock_read();
   return 0;
+}
+
+/**
+ * @brief Prints the transaction log of an account
+ *
+ * Requirements:
+ * - Log the success or failure
+ *
+ *
+ * @param workerID the ID of the worker (thread)
+ * @param ledgerID the ID of the ledger entry
+ * @param accountID the account ID to print balance of
+ * @return int 0 on success -1 on error
+ */
+int Bank::printAccountLog(int workerID, int ledgerID, int accountID, fstream *file)
+{
+  string line;
+  if ((*file).is_open())
+  {
+    (*file).seekg(0, ios::beg);
+    while (getline(*file, line))
+    {
+      cout << line << '\n';
+    }
+  }
+  else
+  {
+    cerr << "Error opening the output file!" << endl;
+    recordFail("Error opening the output file!");
+    return -1; // Indicate failure
+  }
+  string str = "Worker " + to_string(workerID) + " completed ledger " + to_string(ledgerID) + ": print account log of account" + to_string(accountID);
+  char message[str.length() + 1];
+  message[str.length()] = '\0';
+  for (int i = 0; i < str.length(); i++)
+  {
+    message[i] = str[i];
+  }
+  recordSucc(message);
+  return 0; // Indicate success
 }
